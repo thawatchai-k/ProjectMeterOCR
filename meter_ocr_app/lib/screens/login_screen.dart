@@ -38,9 +38,10 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = jsonDecode(response.body);
         final token = data['access_token'];
 
-        // 🔐 บันทึก JWT token
+        // 🔐 บันทึก JWT token และ Role
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString("token", token);
+        await prefs.setString("role", data['user']['role']);
 
         // 👉 ไปหน้า OCR
         Navigator.pushReplacement(

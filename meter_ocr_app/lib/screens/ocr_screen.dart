@@ -9,6 +9,9 @@ import '../services/api_service.dart';
 import 'history_screen.dart';
 import 'add_meter_screen.dart';
 import 'verify_screen.dart';
+import 'meter_list_screen.dart';
+import 'admin_user_screen.dart';
+import 'login_screen.dart';
 
 class OcrScreen extends StatefulWidget {
   const OcrScreen({super.key});
@@ -24,11 +27,30 @@ class _OcrScreenState extends State<OcrScreen> {
   String _reading = "";
   bool _loading = false;
   bool _saving = false;
+  String _role = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
+
+  Future<void> _loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _role = prefs.getString("role") ?? "";
+    });
+  }
 
   // 📸 ถ่ายรูปจากกล้อง
   Future<void> pickFromCamera() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 2000,
+      maxHeight: 2000,
+      imageQuality: 100,
+    );
 
     if (pickedFile != null) {
       setState(() {
@@ -43,7 +65,12 @@ class _OcrScreenState extends State<OcrScreen> {
   // 🖼️ เลือกรูปจากอัลบัม
   Future<void> pickFromGallery() async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 2000,
+      maxHeight: 2000,
+      imageQuality: 100,
+    );
 
     if (pickedFile != null) {
       setState(() {
@@ -165,6 +192,20 @@ class _OcrScreenState extends State<OcrScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear(); // ลบข้อมูลทั้งหมด (token, role)
+              
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -208,56 +249,110 @@ class _OcrScreenState extends State<OcrScreen> {
 
             const SizedBox(height: 20),
 
-            // ปุ่มเลือกรูป
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: pickFromGallery,
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text("เพิ่มรูปถ่าย"),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+            // ปุ่มเลือกรูป (เฉพาะเจ้าหน้าที่กายภาพ)
+            if (_role == 'physical_officer' || _role == 'admin')
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: pickFromGallery,
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text("เพิ่มรูปถ่าย"),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: pickFromCamera,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text("ถ่ายรูปมิเตอร์"),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: pickFromCamera,
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text("ถ่ายรูปมิเตอร์"),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
 
-            const SizedBox(height: 12),
+            if (_role == 'physical_officer' || _role == 'admin')
+              const SizedBox(height: 12),
             
-            // ปุ่มเพิ่มมิเตอร์ (ใหม่)
+            // ปุ่มเพิ่มมิเตอร์ (Admin และ Physical Officer)
+            if (_role == 'admin' || _role == 'physical_officer')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AddMeterScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.add_location_alt),
+                  label: const Text("ลงทะเบียนมิเตอร์ใหม่"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ),
+
+            if (_role == 'admin' || _role == 'physical_officer')
+              const SizedBox(height: 12),
+
+            // ปุ่มดูรายชื่อมิเตอร์ (ใหม่)
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AddMeterScreen()),
+                    MaterialPageRoute(builder: (context) => const MeterListScreen()),
                   );
                 },
-                icon: const Icon(Icons.add_location_alt),
-                label: const Text("ลงทะเบียนมิเตอร์ใหม่"),
+                icon: const Icon(Icons.list_alt),
+                label: const Text("ดูรายชื่อมิเตอร์ทั้งหมด"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: Colors.orange,
+                  backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // ปุ่มจัดการผู้ใช้ (เฉพาะ Admin)
+            if (_role == 'admin')
+              SizedBox(
+                width: double.infinity,
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const AdminUserScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.admin_panel_settings),
+                    label: const Text("จัดการผู้ใช้ในระบบ"),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            
+            if (_role == 'admin')
+              const SizedBox(height: 12),
             
             const SizedBox(height: 16),
 

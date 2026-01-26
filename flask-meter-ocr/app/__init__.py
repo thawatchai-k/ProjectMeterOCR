@@ -33,11 +33,13 @@ def create_app():
     from app.routes.auth_routes import auth_bp
     from app.routes.ocr import ocr_bp
     from app.routes.meter_routes import meter_bp
+    from app.routes.admin import admin_bp
 
     # register blueprints
     app.register_blueprint(auth_bp, url_prefix='/api')
     app.register_blueprint(ocr_bp, url_prefix='/api')
     app.register_blueprint(meter_bp, url_prefix='/api')
+    app.register_blueprint(admin_bp) # admin_bp already has /api prefix in the file
     
     # Auto-create tables (Dev mode convenience)
     with app.app_context():

@@ -45,19 +45,24 @@ def read_text(image_path: str) -> str:
 
         # --- Attempt 1: Extract Serial Number ---
         # Look for "No." or "S/N" followed by digits/dashes/spaces
-        # e.g., "No. 8249 578"
-        serial_match = re.search(r'(?:No|S/N)[.;,:\s]*([A-Za-z0-9-\s]{4,15})', text, re.IGNORECASE)
+        # e.g., "No. 8929 405" -> "8929405"
+        serial_match = re.search(r'(?:No|S/N)[.;,:\s]*([A-Za-z0-9-\s]{4,20})', text, re.IGNORECASE)
         if serial_match:
-            # Clean up the match (remove trailing spaces/newlines)
-            res_sn = serial_match.group(1).split()[0] # Take only the first word/token
-            # Clean up artifacts like dashes or dots at the end
-            res_sn = re.sub(r'[^a-zA-Z0-9]+$', '', res_sn)
-            if len(re.sub(r'\D', '', res_sn)) >= 4:
-                result['serial'] = res_sn
+            raw_sn = serial_match.group(1).strip()
+            # Merge spaces only if they are between digits
+            # No. 8929 405 -> 8929405
+            clean_sn = re.sub(r'(?<=\d)\s+(?=\d)', '', raw_sn)
+            # Take first token if it still contains non-numeric stuff at the end
+            clean_sn = clean_sn.split()[0]
+            # Strip trailing noise
+            clean_sn = re.sub(r'[^a-zA-Z0-9]+$', '', clean_sn)
+            
+            if len(re.sub(r'\D', '', clean_sn)) >= 4:
+                result['serial'] = clean_sn
         
         if not result['serial']:
-             # Fallback: Find long numeric/dashed strings
-             potential_serials = re.findall(r'\b[0-9-]{5,}\b', text)
+             # Fallback: Find long numeric/dashed strings (5+ digits)
+             potential_serials = re.findall(r'\b[0-9-]{6,}\b', text)
              if potential_serials:
                  result['serial'] = potential_serials[0]
 
@@ -69,37 +74,46 @@ def read_text(image_path: str) -> str:
             line = line.strip()
             if not line: continue
             
-            # Step 1: Remove Letters and Label artifacts
-            # "B08 42 kWh" -> "08 42"
-            line_no_letters = re.sub(r'[a-zA-Z]', '', line)
+            # Step 1: Handle separators
+            line_cleaned = re.sub(r'[|:\\\[\]!/]', ' ', line)
             
-            # Step 2: Split by common separators (/, |, \, :)
-            parts = re.split(r'[/|\\:]', line_no_letters)
-             
-            for part in parts:
-                # Truncate at first dot (handle "100.10" -> "100")
-                if '.' in part:
-                    part = part.split('.')[0]
-                     
-                # Extract only decimals, but preserve spacing for potential "0 8 4 2"
-                clean_digits = re.sub(r'[^0-9\s]', '', part).strip()
-                # Remove internal spaces for length check
-                digits_only = clean_digits.replace(" ", "")
-                 
-                # Meter readings are usually 4 to 7 digits
-                if len(digits_only) >= 4 and len(digits_only) <= 7:
-                     # Avoid serial matches: if a candidate is a subset of the serial, skip it
-                     if result['serial'] and digits_only in re.sub(r'\D', '', result['serial']):
+            # Step 2: Remove Letters
+            line_no_letters = re.sub(r'[a-zA-Z]', '', line_cleaned)
+            
+            # Step 3: Find digit sequences with optional single spaces
+            # Matches "8 1 8 8 5" or "8188 5"
+            tokens = re.findall(r'\b\d+(?:\s\d+)*\b', line_no_letters)
+            
+            for token in tokens:
+                merged_digits = re.sub(r'\s', '', token)
+                
+                # Check lengths (Meter readings are usually 4 to 6 digits)
+                if 4 <= len(merged_digits) <= 6:
+                     # Avoid serial matches
+                     if result['serial'] and merged_digits in re.sub(r'\D', '', result['serial']):
                          continue
                      
-                     candidates.append(digits_only)
+                     if merged_digits in ['1000', '10000', '5060']: # Skip common specs
+                         continue
+
+                     candidates.append(merged_digits)
 
         print(f"🔹 Reading Candidates: {candidates}")
         
         if candidates:
-            # readings usually have more leading zeros or are "most isolated"
-            # for now, take the first valid one
-            result['reading'] = candidates[0]
+            # readings usually have more leading zeros
+            zeros = [c for c in candidates if c.startswith('0')]
+            if zeros:
+                result['reading'] = zeros[0]
+            else:
+                # Prioritize 5-digit numbers for "5-unit meters" as requested
+                # If there's a 5-digit candidate, it's likely the winner
+                fives = [c for c in candidates if len(c) == 5]
+                if fives:
+                    result['reading'] = fives[0]
+                else:
+                    candidates.sort(key=lambda x: abs(5 - len(x)))
+                    result['reading'] = candidates[0]
 
         print(f"🔹 Extracted Result: {result}")
         return result

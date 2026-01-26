@@ -129,4 +129,19 @@ class ApiService {
       throw Exception('Failed to save reading: ${response.body}');
     }
   }
+
+  static Future<String> getMeterReadings(int meterId, String token) async {
+    final response = await http.get(
+      Uri.parse('${ApiConfig.meters}/$meterId/readings'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      throw Exception('Failed to load readings');
+    }
+  }
 }

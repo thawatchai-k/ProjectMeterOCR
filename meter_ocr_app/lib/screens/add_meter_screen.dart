@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/meter_model.dart';
 import '../services/api_service.dart';
+import 'login_screen.dart';
 
 class AddMeterScreen extends StatefulWidget {
   const AddMeterScreen({super.key});
@@ -114,7 +115,24 @@ class _AddMeterScreenState extends State<AddMeterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("เพิ่มมิเตอร์")),
+      appBar: AppBar(
+        title: const Text("เพิ่มมิเตอร์"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              if (!context.mounted) return;
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

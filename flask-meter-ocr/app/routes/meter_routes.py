@@ -73,3 +73,12 @@ def save_reading():
     db.session.commit()
 
     return jsonify(new_reading.to_dict()), 201
+
+@meter_bp.route('/meters/<int:meter_id>/readings', methods=['GET'])
+def get_meter_readings(meter_id):
+    meter = Meter.query.get(meter_id)
+    if not meter:
+        return jsonify({"error": "Meter not found"}), 404
+        
+    readings = MeterReading.query.filter_by(meter_id=meter_id).order_by(MeterReading.created_at.desc()).all()
+    return jsonify([r.to_dict() for r in readings]), 200
