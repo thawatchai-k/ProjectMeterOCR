@@ -55,86 +55,89 @@ class _MeterListScreenState extends State<MeterListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text("รายชื่อมิเตอร์ทั้งหมด"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              if (!context.mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
+        title: const Text("รายชื่อมิเตอร์"),
       ),
       body: Column(
         children: [
-          // Search Bar
+          // 🔍 Premium Search Bar
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: "ค้นหาด้วย S/N...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
               ),
-              onChanged: _filterMeters,
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "ค้นหาด้วยหมายเลข S/N...",
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  prefixIcon: Icon(Icons.search_rounded, color: theme.primaryColor.withOpacity(0.7)),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onChanged: _filterMeters,
+              ),
             ),
           ),
           
           Expanded(
             child: RefreshIndicator(
               onRefresh: _fetchMeters,
+              color: theme.primaryColor,
               child: _isLoading 
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredMeters.isEmpty
-                  ? const Center(child: Text("ไม่พบข้อมูลมิเตอร์"))
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off_rounded, size: 64, color: Colors.white10),
+                          const SizedBox(height: 16),
+                          const Text("ไม่พบข้อมูลมิเตอร์", style: TextStyle(color: Colors.white38)),
+                        ],
+                      ),
+                    )
                   : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                       itemCount: _filteredMeters.length,
                       itemBuilder: (context, index) {
                         final meter = _filteredMeters[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
                           child: InkWell(
                             onTap: () {
-                              debugPrint("🔵 DEBUG: User tapped on S/N: ${meter.serialNumber}, ID: ${meter.id}");
-                              
-                              if (meter.id == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("ข้อผิดพลาด: ไม่พบ ID ของมิเตอร์")),
-                                );
-                                return;
-                              }
-
-                              // แสดง SnackBar เพื่อยืนยันว่าปุ่มถูกกดแล้ว
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("กำลังโหลดประวัติของ S/N: ${meter.serialNumber}"),
-                                  duration: const Duration(seconds: 1),
-                                ),
-                              );
-
+                              if (meter.id == null) return;
                               Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) => MeterDetailScreen(meter: meter),
                                 ),
                               );
                             },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.03),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              ),
                               child: Row(
                                 children: [
-                                  const CircleAvatar(child: Icon(Icons.wb_incandescent)),
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: theme.primaryColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(Icons.electric_meter_rounded, color: theme.primaryColor, size: 24),
+                                  ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
@@ -144,11 +147,15 @@ class _MeterListScreenState extends State<MeterListScreen> {
                                           "S/N: ${meter.serialNumber}",
                                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                         ),
-                                        Text("อาคาร: ${meter.building} ชั้น: ${meter.floor}"),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "อาคาร: ${meter.building} ชั้น: ${meter.floor}",
+                                          style: const TextStyle(color: Colors.white54, fontSize: 13),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.chevron_right, color: Colors.grey),
+                                  const Icon(Icons.chevron_right_rounded, color: Colors.white10),
                                 ],
                               ),
                             ),

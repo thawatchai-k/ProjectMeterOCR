@@ -11,7 +11,7 @@ class MeterReading(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationship
-    meter = db.relationship("Meter", backref=db.backref("readings", lazy=True))
+    meter = db.relationship("Meter", back_populates="readings")
 
     def to_dict(self):
         return {

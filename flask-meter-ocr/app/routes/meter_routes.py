@@ -29,15 +29,22 @@ def get_meters():
     meters = Meter.query.order_by(Meter.created_at.desc()).all()
     return jsonify([m.to_dict() for m in meters]), 200
 
+from app.utils.auth import require_role
+
 @meter_bp.route('/meters/<int:meter_id>', methods=['DELETE'])
+@require_role(["admin"])
 def delete_meter(meter_id):
-    meter = Meter.query.get(meter_id)
-    if not meter:
-        return jsonify({"error": "Meter not found"}), 404
-    
-    db.session.delete(meter)
-    db.session.commit()
-    return jsonify({"message": "Deleted successfully"}), 200
+    try:
+        meter = Meter.query.get(meter_id)
+        if not meter:
+            return jsonify({"error": "Meter not found"}), 404
+        
+        db.session.delete(meter)
+        db.session.commit()
+        return jsonify({"message": "Deleted successfully (including all history)"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to delete: {str(e)}"}), 500
 
 from app.models.meter_reading import MeterReading
 from werkzeug.utils import secure_filename

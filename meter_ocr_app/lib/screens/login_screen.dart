@@ -68,34 +68,120 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: usernameController,
-              decoration: const InputDecoration(labelText: 'Username'),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password'),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: login,
-                      child: const Text('Login'),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.scaffoldBackgroundColor,
+              theme.scaffoldBackgroundColor.withBlue(60),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 🚀 Logo / Icon
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.primaryColor.withOpacity(0.2), width: 2),
                     ),
+                    child: Icon(
+                      Icons.electric_meter_rounded,
+                      size: 80,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "METER OCR PRO",
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "เข้าสู่ระบบเพื่อเริ่มใช้งาน",
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 48),
+
+                  // 📝 Input Fields
+                  _buildStyledTextField(
+                    controller: usernameController,
+                    label: "ชื่อผู้ใช้",
+                    icon: Icons.person_outline_rounded,
+                    theme: theme,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildStyledTextField(
+                    controller: passwordController,
+                    label: "รหัสผ่าน",
+                    icon: Icons.lock_outline_rounded,
+                    theme: theme,
+                    isPassword: true,
+                  ),
+                  const SizedBox(height: 40),
+
+                  // 🔘 Login Button
+                  loading
+                      ? const CircularProgressIndicator()
+                      : ElevatedButton(
+                          onPressed: login,
+                          child: const Text("เข้าสู่ระบบ"),
+                        ),
+                  
+                  const SizedBox(height: 24),
+                  TextButton(
+                    onPressed: () {},
+                    child: Text(
+                      "ลืมรหัสผ่าน?",
+                      style: TextStyle(color: theme.primaryColor.withOpacity(0.7)),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStyledTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required ThemeData theme,
+    bool isPassword = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+          prefixIcon: Icon(icon, color: theme.primaryColor.withOpacity(0.7)),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
       ),
     );

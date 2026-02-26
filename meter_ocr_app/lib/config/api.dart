@@ -1,6 +1,7 @@
 class ApiConfig {
-  // ใช้ localhost สำหรับ Chrome, ใช้ 10.0.2.2 สำหรับ Android Emulator
-  static const String baseUrl = 'http://localhost:5000';
+  // เลือกใช้ baseUrl ให้ถูกกับอุปกรณ์ที่รัน:
+  static const String baseUrl = 'http://localhost:5000'; // สำหรับรันบน Chrome
+  // static const String baseUrl = 'http://10.0.2.2:5000'; // สำหรับรันบน Android Emulator
 
   static const String login = '$baseUrl/api/login';
   static const String ocr = '$baseUrl/api/ocr';

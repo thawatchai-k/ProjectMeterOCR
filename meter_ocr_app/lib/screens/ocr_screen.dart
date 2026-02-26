@@ -179,12 +179,14 @@ class _OcrScreenState extends State<OcrScreen> {
   // 🖥️ UI
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text("OCR มิเตอร์ไฟฟ้า"),
+        title: const Text("METER OCR PRO"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.history_rounded),
             onPressed: () {
               Navigator.push(
                 context,
@@ -193,11 +195,10 @@ class _OcrScreenState extends State<OcrScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
-              await prefs.clear(); // ลบข้อมูลทั้งหมด (token, role)
-              
+              await prefs.clear();
               if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
@@ -208,247 +209,255 @@ class _OcrScreenState extends State<OcrScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // แสดงรูปที่เลือก
-            if (_image != null)
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: kIsWeb
-                      ? Image.network(_image!.path, height: 250, fit: BoxFit.contain)
-                      : Image.file(File(_image!.path), height: 250, fit: BoxFit.contain),
-                ),
-              )
-            else
-              Container(
-                height: 250,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.image, size: 64, color: Colors.grey),
-                      SizedBox(height: 8),
-                      Text("ยังไม่มีรูปภาพ", style: TextStyle(color: Colors.grey)),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              theme.scaffoldBackgroundColor,
+              theme.scaffoldBackgroundColor.withBlue(40),
+            ],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 8),
+              // 📸 Image Preview with Glow Effect
+              Center(
+                child: Container(
+                  width: double.infinity,
+                  height: 280,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.primaryColor.withOpacity(0.2),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
                     ],
+                    border: Border.all(
+                      color: theme.primaryColor.withOpacity(0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: _image != null
+                        ? (kIsWeb
+                            ? Image.network(_image!.path, fit: BoxFit.cover)
+                            : Image.file(File(_image!.path), fit: BoxFit.cover))
+                        : Container(
+                            color: theme.cardColor,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.camera_enhance_rounded,
+                                    size: 64, color: theme.primaryColor.withOpacity(0.5)),
+                                const SizedBox(height: 16),
+                                Text(
+                                  "พร้อมสำหรับการสแกน",
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
                   ),
                 ),
               ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 32),
 
-            // ปุ่มเลือกรูป (เฉพาะเจ้าหน้าที่กายภาพ)
-            if (_role == 'physical_officer' || _role == 'admin')
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: pickFromGallery,
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text("เพิ่มรูปถ่าย"),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+              // 🛠️ Action Buttons
+              if (_role == 'physical_officer' || _role == 'admin') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: pickFromGallery,
+                        icon: const Icon(Icons.photo_library_rounded),
+                        label: const Text("คลังภาพ"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white10,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: pickFromCamera,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text("ถ่ายรูปมิเตอร์"),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: pickFromCamera,
+                        icon: const Icon(Icons.camera_alt_rounded),
+                        label: const Text("ถ่ายรูป"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primaryColor,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
 
-            if (_role == 'physical_officer' || _role == 'admin')
-              const SizedBox(height: 12),
-            
-            // ปุ่มเพิ่มมิเตอร์ (Admin และ Physical Officer)
-            if (_role == 'admin' || _role == 'physical_officer')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AddMeterScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.add_location_alt),
-                  label: const Text("ลงทะเบียนมิเตอร์ใหม่"),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
+              // 🧠 OCR Action Button
+              if (_image != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: ElevatedButton.icon(
+                    onPressed: _loading ? null : doOcr,
+                    icon: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.auto_awesome_rounded),
+                    label: Text(_loading ? "กำลังประมวลผล..." : "เริ่มอ่านค่า OCR"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.secondary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
                   ),
                 ),
-              ),
 
-            if (_role == 'admin' || _role == 'physical_officer')
-              const SizedBox(height: 12),
+              const Divider(height: 48, color: Colors.white10),
 
-            // ปุ่มดูรายชื่อมิเตอร์ (ใหม่)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
+              // 📊 Features Grid/List
+              if (_role == 'admin' || _role == 'physical_officer')
+                _buildModernActionTile(
+                  context,
+                  icon: Icons.add_location_alt_rounded,
+                  title: "ลงทะเบียนมิเตอร์ใหม่",
+                  color: Colors.orangeAccent,
+                  onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const MeterListScreen()),
-                  );
-                },
-                icon: const Icon(Icons.list_alt),
-                label: const Text("ดูรายชื่อมิเตอร์ทั้งหมด"),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
+                    MaterialPageRoute(builder: (context) => const AddMeterScreen()),
+                  ),
                 ),
+
+              const SizedBox(height: 12),
+
+              _buildModernActionTile(
+                context,
+                icon: Icons.list_alt_rounded,
+                title: "ดูรายชื่อมิเตอร์ทั้งหมด",
+                color: Colors.tealAccent,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MeterListScreen()),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // 📊 Result Panel (If available)
+              if (_reading.isNotEmpty || _serial.isNotEmpty) ...[
+                 Text(
+                  "ผลตรวจสอบเบื้องต้น",
+                  style: theme.textTheme.headlineMedium?.copyWith(fontSize: 18),
+                ),
+                const SizedBox(height: 16),
+                _buildResultCard(
+                  title: "ค่าไฟ (Reading)",
+                  value: _reading,
+                  icon: Icons.flash_on_rounded,
+                  color: theme.colorScheme.secondary,
+                ),
+                const SizedBox(height: 12),
+                _buildResultCard(
+                  title: "หมายเลขมิเตอร์ (S/N)",
+                  value: _serial,
+                  icon: Icons.qr_code_rounded,
+                  color: theme.primaryColor,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: _role == 'admin'
+          ? FloatingActionButton.extended(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminUserScreen()),
+              ),
+              icon: const Icon(Icons.admin_panel_settings_rounded),
+              label: const Text("จัดการผู้ใช้"),
+              backgroundColor: theme.primaryColor,
+            )
+          : null,
+    );
+  }
+
+  Widget _buildModernActionTile(BuildContext context,
+      {required IconData icon, required String title, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
-            const SizedBox(height: 12),
-
-            // ปุ่มจัดการผู้ใช้ (เฉพาะ Admin)
-            if (_role == 'admin')
-              SizedBox(
-                width: double.infinity,
-                child: ColorFiltered(
-                  colorFilter: const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const AdminUserScreen()),
-                      );
-                    },
-                    icon: const Icon(Icons.admin_panel_settings),
-                    label: const Text("จัดการผู้ใช้ในระบบ"),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            
-            if (_role == 'admin')
-              const SizedBox(height: 12),
-            
-            const SizedBox(height: 16),
-
-            // ปุ่มบันทึกและส่ง OCR (แสดงเมื่อมีรูป)
-            if (_image != null) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _saving ? null : saveToGallery,
-                      icon: _saving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.save_alt),
-                      label: const Text("บันทึกลงอัลบัม"),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _loading ? null : doOcr,
-                      icon: _loading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.send),
-                      label: const Text("ส่งไป OCR"),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // แสดงผล OCR (Raw Text) - ซ่อนตามที่ user ขอ (ให้ดูที่ Backend Log แทน)
-            /*
-            if (_ocrText.isNotEmpty) ...[
-              const Divider(),
-              const SizedBox(height: 8),
-              const Text(
-                "ผลลัพธ์ OCR (Raw Text):",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 4, bottom: 12),
-                padding: const EdgeInsets.all(8),
-                color: Colors.grey[100],
-                child: SelectableText(_ocrText, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ),
-            ],
-            */
-
-            // แสดงผลที่แยกออกมา (Reading & Serial)
-            if (_reading.isNotEmpty || _serial.isNotEmpty) ...[
-              const Divider(thickness: 2),
-              const Center(child: Text("✅ ข้อมูลที่อ่านได้", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green))),
-              const SizedBox(height: 12),
-              
-              if (_reading.isNotEmpty) 
-                Card(
-                  color: Colors.green[50],
-                  child: ListTile(
-                    leading: const Icon(Icons.flash_on, color: Colors.green, size: 32),
-                    title: const Text("ค่าไฟ (Reading)", style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(_reading, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
-                  ),
-                ),
-                
-               if (_serial.isNotEmpty)
-                Card(
-                  color: Colors.blue[50],
-                  child: ListTile(
-                    leading: const Icon(Icons.confirmation_number, color: Colors.blue, size: 32),
-                    title: const Text("หมายเลขมิเตอร์ (S/N)", style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(_serial, style: const TextStyle(fontSize: 18, color: Colors.black87)),
-                  ),
-                ),
-            ],
+            const Icon(Icons.chevron_right_rounded, color: Colors.white24),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildResultCard({required String title, required String value, required IconData icon, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(width: 20),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

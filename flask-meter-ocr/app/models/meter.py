@@ -10,6 +10,9 @@ class Meter(db.Model):
     floor = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Relationship to readings with cascade delete
+    readings = db.relationship("MeterReading", back_populates="meter", cascade="all, delete-orphan")
+
     def to_dict(self):
         return {
             "id": self.id,

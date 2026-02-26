@@ -22,11 +22,20 @@ class _AddMeterScreenState extends State<AddMeterScreen> {
 
   bool _isLoading = false;
   List<MeterModel> _meters = [];
+  String _role = "";
 
   @override
   void initState() {
     super.initState();
+    _loadRole();
     _fetchMeters();
+  }
+
+  Future<void> _loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _role = prefs.getString("role") ?? "";
+    });
   }
 
   Future<void> _fetchMeters() async {
@@ -114,93 +123,91 @@ class _AddMeterScreenState extends State<AddMeterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text("เพิ่มมิเตอร์"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              if (!context.mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
+        title: const Text("จัดการมิเตอร์"),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Column(
           children: [
-            // Form Section
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      const Text("ลงทะเบียนมิเตอร์ใหม่", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _serialController,
-                        decoration: const InputDecoration(labelText: "หมายเลขมิเตอร์ (S/N)", border: OutlineInputBorder()),
-                        validator: (v) => v!.isEmpty ? "กรุณากรอก S/N" : null,
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _buildingController,
-                              decoration: const InputDecoration(labelText: "อาคาร", border: OutlineInputBorder()),
-                              validator: (v) => v!.isEmpty ? "ระบุอาคาร" : null,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _floorController,
-                              decoration: const InputDecoration(labelText: "ชั้น", border: OutlineInputBorder()),
-                              validator: (v) => v!.isEmpty ? "ระบุชั้น" : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _submit,
-                          icon: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.add),
-                          label: const Text("บันทึก"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue, 
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12)
+            // ✨ Registration Card
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: theme.primaryColor.withOpacity(0.2)),
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const Text(
+                      "ลงทะเบียนมิเตอร์ใหม่",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildStyledTextField(
+                      controller: _serialController,
+                      label: "หมายเลขมิเตอร์ (S/N)",
+                      icon: Icons.qr_code_rounded,
+                      theme: theme,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStyledTextField(
+                            controller: _buildingController,
+                            label: "อาคาร",
+                            icon: Icons.business_rounded,
+                            theme: theme,
                           ),
                         ),
-                      )
-                    ],
-                  ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildStyledTextField(
+                            controller: _floorController,
+                            label: "ชั้น",
+                            icon: Icons.layers_rounded,
+                            theme: theme,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _submit,
+                      icon: _isLoading 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                        : const Icon(Icons.add_rounded),
+                      label: const Text("บันทึกข้อมูล"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.primaryColor,
+                      ),
+                    )
+                  ],
                 ),
               ),
             ),
 
-            const SizedBox(height: 24),
-            const Divider(),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text("รายการมิเตอร์ที่ลงทะเบียนแล้ว", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 40),
+            Row(
+              children: [
+                Icon(Icons.list_alt_rounded, size: 20, color: theme.primaryColor),
+                const SizedBox(width: 12),
+                const Text(
+                  "รายการมิเตอร์ที่ลงทะเบียนแล้ว",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             
-            // List Section
+            // 📊 Meters List
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -208,16 +215,35 @@ class _AddMeterScreenState extends State<AddMeterScreen> {
               itemBuilder: (context, index) {
                 final meter = _meters[index];
                 final dateStr = meter.createdAt?.split('T')[0] ?? "-";
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.wb_incandescent_outlined)),
-                    title: Text("S/N: ${meter.serialNumber}"),
-                    subtitle: Text("อาคาร: ${meter.building} ชั้น: ${meter.floor}\nเพิ่มเมื่อ: $dateStr"),
-                    isThreeLine: true,
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteMeter(meter.id!),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.electric_meter_rounded, color: theme.primaryColor, size: 24),
+                      ),
+                      title: Text("S/N: ${meter.serialNumber}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(
+                        "อาคาร: ${meter.building} ชั้น: ${meter.floor} | $dateStr",
+                        style: const TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                      trailing: _role == 'admin' 
+                        ? IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                            onPressed: () => _deleteMeter(meter.id!),
+                          )
+                        : const Icon(Icons.chevron_right_rounded, color: Colors.white10),
                     ),
                   ),
                 );
@@ -225,6 +251,33 @@ class _AddMeterScreenState extends State<AddMeterScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStyledTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required ThemeData theme,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: TextFormField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+          prefixIcon: Icon(icon, color: theme.primaryColor.withOpacity(0.7), size: 18),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        validator: (v) => v!.isEmpty ? "!" : null,
       ),
     );
   }

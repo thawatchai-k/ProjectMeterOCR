@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
+import 'config/theme.dart';
 
 void main() {
   runApp(const MeterOCRApp());
@@ -13,9 +14,7 @@ class MeterOCRApp extends StatelessWidget {
     return MaterialApp(
       title: 'Meter OCR',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: AppTheme.darkTheme,
       home: const LoginScreen(),
     );
   }

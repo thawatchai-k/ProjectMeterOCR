@@ -47,24 +47,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text("ประวัติการสแกน"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.redAccent),
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              if (!context.mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -74,44 +61,110 @@ class _HistoryScreenState extends State<HistoryScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return Center(child: Text("เกิดข้อผิดพลาด: ${snapshot.error}"));
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline_rounded, size: 48, color: Colors.redAccent.withOpacity(0.5)),
+                    const SizedBox(height: 16),
+                    Text("เกิดข้อผิดพลาด: ${snapshot.error}", textAlign: TextAlign.center),
+                  ],
+                ),
+              );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text("ไม่มีประวัติ"));
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.history_rounded, size: 64, color: theme.primaryColor.withOpacity(0.2)),
+                    const SizedBox(height: 16),
+                    const Text("ยังไม่มีประวัติการสแกน"),
+                  ],
+                ),
+              );
             }
 
             final items = snapshot.data!;
-            return ListView.separated(
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               itemCount: items.length,
-              separatorBuilder: (context, index) => const Divider(),
               itemBuilder: (context, index) {
                 final item = items[index];
                 final imageUrl = "${ApiConfig.baseUrl}${item.imageUrl}";
                 
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(8),
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        imageUrl,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Container(width: 80, height: 80, color: Colors.grey, child: const Icon(Icons.broken_image)),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Left Image Section
+                            SizedBox(
+                              width: 100,
+                              child: Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => Container(
+                                  color: theme.cardColor,
+                                  child: const Icon(Icons.broken_image_rounded, color: Colors.white24),
+                                ),
+                              ),
+                            ),
+                            // Right Content Section
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(Icons.flash_on_rounded, size: 16, color: theme.colorScheme.secondary),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "ค่าไฟ: ${item.reading ?? 'N/A'}",
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.qr_code_rounded, size: 16, color: Colors.white54),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          "S/N: ${item.serial ?? 'N/A'}",
+                                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      item.createdAt.split('T')[0],
+                                      style: TextStyle(fontSize: 11, color: theme.primaryColor.withOpacity(0.5)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.only(right: 12),
+                                child: Icon(Icons.chevron_right_rounded, color: Colors.white24),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    title: Text("Reading: ${item.reading ?? 'N/A'}"),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("S/N: ${item.serial ?? 'N/A'}"),
-                        const SizedBox(height: 4),
-                        Text(item.createdAt.split('T')[0], style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                    isThreeLine: true,
                   ),
                 );
               },
