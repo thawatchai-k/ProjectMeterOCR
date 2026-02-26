@@ -296,9 +296,65 @@ def select_best_serial(candidates):
     return None
 
 
+def auto_correct_rotation(img):
+    """
+    ตรวจจับและแก้ไขการหมุนของภาพอัตโนมัติ
+    ลอง 4 มุม (0, 90, 180, 270) แล้วเลือกมุมที่ Tesseract อ่านข้อความได้มากที่สุด
+    """
+    best_angle = 0
+    best_score = 0
+    
+    # ลดขนาดภาพเพื่อทดสอบเร็วขึ้น
+    h, w = img.shape[:2]
+    scale = min(1.0, 800.0 / max(h, w))
+    small = cv2.resize(img, (int(w * scale), int(h * scale)))
+    
+    rotations = {
+        0: small,
+        90: cv2.rotate(small, cv2.ROTATE_90_COUNTERCLOCKWISE),
+        180: cv2.rotate(small, cv2.ROTATE_180),
+        270: cv2.rotate(small, cv2.ROTATE_90_CLOCKWISE),
+    }
+    
+    for angle, rotated in rotations.items():
+        gray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced = clahe.apply(gray)
+        
+        try:
+            data = pytesseract.image_to_data(enhanced, output_type=pytesseract.Output.DICT)
+            words = []
+            for j in range(len(data['text'])):
+                txt = str(data['text'][j]).strip()
+                conf = int(data['conf'][j]) if data['conf'][j] != '-1' else 0
+                if txt and conf > 30:
+                    words.append(txt)
+            
+            score = len(words)
+            text_preview = " ".join(words[:10])
+            print(f"  🔄 {angle}°: {score} words -> '{text_preview}'")
+            
+            if score > best_score:
+                best_score = score
+                best_angle = angle
+        except Exception as e:
+            print(f"  ⚠️ Rotation test {angle}° error: {e}")
+    
+    print(f"  ✅ Best rotation: {best_angle}° ({best_score} words)")
+    
+    # หมุนภาพต้นฉบับ (ขนาดเต็ม)
+    if best_angle == 90:
+        return cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    elif best_angle == 180:
+        return cv2.rotate(img, cv2.ROTATE_180)
+    elif best_angle == 270:
+        return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+    return img
+
+
 def read_text(image_path: str) -> dict:
     print(f"\n{'='*60}")
-    print(f"🔹 OCR Engine v2.0 - Multi-Strategy Scan: {image_path}")
+    print(f"🔹 OCR Engine v2.1 - Auto-Rotate + Multi-Strategy: {image_path}")
     print(f"{'='*60}")
     
     img = cv2.imread(image_path)
@@ -307,7 +363,15 @@ def read_text(image_path: str) -> dict:
         return {"text": "", "serial": None, "reading": None}
     
     h, w = img.shape[:2]
-    print(f"📐 Image size: {w}x{h}")
+    print(f"📐 Original image size: {w}x{h}")
+    
+    # ============================================================
+    # STEP 0: Auto-Rotation Detection
+    # ============================================================
+    print("\n--- Step 0: Auto-Rotation Detection ---")
+    img = auto_correct_rotation(img)
+    h, w = img.shape[:2]
+    print(f"📐 After rotation: {w}x{h}")
     save_debug("00_original", img)
     
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
