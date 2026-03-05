@@ -138,7 +138,10 @@ class _OcrScreenState extends State<OcrScreen> {
     }
 
     try {
-      final response = await ApiService.uploadImage(_image!, token);
+      final response = await ApiService.uploadImage(
+        _image!, 
+        token,
+      );
 
       final data = jsonDecode(response);
 
@@ -227,47 +230,65 @@ class _OcrScreenState extends State<OcrScreen> {
             children: [
               const SizedBox(height: 8),
               // 📸 Image Preview with Glow Effect
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  height: 280,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.primaryColor.withOpacity(0.2),
-                        blurRadius: 20,
-                        spreadRadius: 2,
+              Stack(
+                children: [
+                  // Preview Image
+                  Center(
+                    child: Container(
+                      width: double.infinity,
+                      height: 280,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.primaryColor.withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                        border: Border.all(
+                          color: theme.primaryColor.withOpacity(0.3),
+                          width: 2,
+                        ),
                       ),
-                    ],
-                    border: Border.all(
-                      color: theme.primaryColor.withOpacity(0.3),
-                      width: 2,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: _image != null
+                            ? (kIsWeb
+                                ? Image.network(_image!.path, fit: BoxFit.cover)
+                                : Image.file(File(_image!.path), fit: BoxFit.cover))
+                            : Container(
+                                color: theme.cardColor,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.camera_enhance_rounded,
+                                        size: 64, color: theme.primaryColor.withOpacity(0.5)),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      "พร้อมสำหรับการสแกน",
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
                     ),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
-                    child: _image != null
-                        ? (kIsWeb
-                            ? Image.network(_image!.path, fit: BoxFit.cover)
-                            : Image.file(File(_image!.path), fit: BoxFit.cover))
-                        : Container(
-                            color: theme.cardColor,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.camera_enhance_rounded,
-                                    size: 64, color: theme.primaryColor.withOpacity(0.5)),
-                                const SizedBox(height: 16),
-                                Text(
-                                  "พร้อมสำหรับการสแกน",
-                                  style: theme.textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
+                  
+                  // Scanner Overlay (Guide only, no ROIs)
+                  if (_image == null)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: CustomPaint(
+                          painter: ScannerOverlayPainter(
+                            borderColor: theme.primaryColor,
+                            overlayColor: Colors.black.withOpacity(0.3),
                           ),
-                  ),
-                ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
 
               const SizedBox(height: 32),
@@ -461,4 +482,72 @@ class _OcrScreenState extends State<OcrScreen> {
       ),
     );
   }
+}
+
+// 🎨 Painter สำหรับสร้างกรอบนำสายตา (Scanner Overlay)
+class ScannerOverlayPainter extends CustomPainter {
+  final Color borderColor;
+  final Color overlayColor;
+
+  ScannerOverlayPainter({
+    required this.borderColor,
+    required this.overlayColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = overlayColor;
+    
+    // พิกัดกรอบเป้าหมาย (กลางจอ - เพื่อความสวยงามนำสายตาเท่านั้น)
+    final double boxWidth = size.width * 0.8;
+    final double boxHeight = 120;
+    final Rect targetRect = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: boxWidth,
+      height: boxHeight,
+    );
+
+    // 1. วาดพื้นหลังกึ่งโปร่งใส (เจาะรูตรงกลาง)
+    final backgroundPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRRect(RRect.fromRectAndRadius(targetRect, const Radius.circular(12)))
+      ..fillType = PathFillType.evenOdd;
+    
+    canvas.drawPath(backgroundPath, paint);
+
+    // 2. วาดเส้นขอบเรืองแสง
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(targetRect, const Radius.circular(12)),
+      borderPaint,
+    );
+
+    // 3. วาดเส้นนำสายตาที่มุม
+    final cornerPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+
+    double len = 20;
+    // Top-Left
+    canvas.drawLine(targetRect.topLeft, targetRect.topLeft + Offset(len, 0), cornerPaint);
+    canvas.drawLine(targetRect.topLeft, targetRect.topLeft + Offset(0, len), cornerPaint);
+    // Top-Right
+    canvas.drawLine(targetRect.topRight, targetRect.topRight + Offset(-len, 0), cornerPaint);
+    canvas.drawLine(targetRect.topRight, targetRect.topRight + Offset(0, len), cornerPaint);
+    // Bottom-Left
+    canvas.drawLine(targetRect.bottomLeft, targetRect.bottomLeft + Offset(len, 0), cornerPaint);
+    canvas.drawLine(targetRect.bottomLeft, targetRect.bottomLeft + Offset(0, -len), cornerPaint);
+    // Bottom-Right
+    canvas.drawLine(targetRect.bottomRight, targetRect.bottomRight + Offset(-len, 0), cornerPaint);
+    canvas.drawLine(targetRect.bottomRight, targetRect.bottomRight + Offset(0, -len), cornerPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

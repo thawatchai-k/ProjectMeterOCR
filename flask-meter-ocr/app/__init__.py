@@ -12,7 +12,22 @@ def create_app():
     app = Flask(__name__)
 
     # Enable CORS for all routes with full configuration
-    CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+    CORS(app, resources={
+        r"/*": {
+            "origins": "*",
+            "allow_headers": ["Content-Type", "Authorization", "Access-Control-Allow-Credentials"],
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "expose_headers": ["Content-Type", "Authorization"]
+        }
+    }, supports_credentials=True)
+
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
 
     # Load config from config.py
     app.config.from_object('config.Config')

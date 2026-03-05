@@ -6,18 +6,24 @@ import '../models/meter_model.dart';
 
 class ApiService {
   static Future<String> uploadImage(
-      XFile image, String token) async {
+      XFile image, String token, {Map<String, double>? readingRoi, Map<String, double>? serialRoi}) async {
 
     print("🔴 DEBUG: Starting OCR upload...");
     print("🔴 DEBUG: URL = ${ApiConfig.ocr}");
-    print("🔴 DEBUG: Token = $token");
-
+    
     final request = http.MultipartRequest(
       'POST',
       Uri.parse(ApiConfig.ocr),
     );
 
     request.headers['Authorization'] = 'Bearer $token';
+
+    if (readingRoi != null) {
+      request.fields['reading_roi'] = jsonEncode(readingRoi);
+    }
+    if (serialRoi != null) {
+      request.fields['serial_roi'] = jsonEncode(serialRoi);
+    }
 
     // Read bytes for Web compatibility
     final bytes = await image.readAsBytes();

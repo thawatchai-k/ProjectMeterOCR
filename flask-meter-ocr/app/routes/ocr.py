@@ -34,7 +34,20 @@ def ocr_upload():
     save_path = os.path.join(UPLOAD_DIR, filename)
     file.save(save_path)
 
-    ocr_data = read_text(save_path)
+    # ดึงค่า ROI จาก Request (ถ้ามี)
+    reading_roi = request.form.get("reading_roi")
+    serial_roi = request.form.get("serial_roi")
+    
+    # แปลงจาก JSON String เป็น Dict
+    try:
+        import json
+        reading_roi_dict = json.loads(reading_roi) if reading_roi else None
+        serial_roi_dict = json.loads(serial_roi) if serial_roi else None
+    except:
+        reading_roi_dict = None
+        serial_roi_dict = None
+
+    ocr_data = read_text(save_path, reading_roi=reading_roi_dict, serial_roi=serial_roi_dict)
     
     # read_text now returns a dict
     text_content = ocr_data.get("text", "")
