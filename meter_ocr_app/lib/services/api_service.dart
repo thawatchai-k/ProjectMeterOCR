@@ -136,6 +136,27 @@ class ApiService {
     }
   }
 
+  static Future<bool> saveReadingUpdate(String serial, String reading, String? imagePath, String token) async {
+    final response = await http.post(
+      Uri.parse('${ApiConfig.readings}/update'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        "serial_number": serial,
+        "reading": reading,
+        "image_path": imagePath,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Failed to save reading: ${response.body}');
+    }
+  }
+
   static Future<String> getMeterReadings(int meterId, String token) async {
     final response = await http.get(
       Uri.parse('${ApiConfig.meters}/$meterId/readings'),

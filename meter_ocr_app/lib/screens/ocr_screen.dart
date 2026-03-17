@@ -255,8 +255,8 @@ class _OcrScreenState extends State<OcrScreen> {
                         borderRadius: BorderRadius.circular(22),
                         child: _image != null
                             ? (kIsWeb
-                                ? Image.network(_image!.path, fit: BoxFit.cover)
-                                : Image.file(File(_image!.path), fit: BoxFit.cover))
+                                ? Image.network(_image!.path, fit: BoxFit.contain)
+                                : Image.file(File(_image!.path), fit: BoxFit.contain))
                             : Container(
                                 color: theme.cardColor,
                                 child: Column(

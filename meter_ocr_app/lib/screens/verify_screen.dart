@@ -76,45 +76,43 @@ class _VerifyScreenState extends State<VerifyScreen> {
     }
 
     try {
-      // ค้นหาในรายการที่โหลดมา
-      // ทำ clean text ก่อนเปรียบเทียบ (ลบ space/dash)
-      final cleanSnInput = sn.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+      // ค้นหาในรายการที่โหลดมา - ใช้การเปรียบเทียบแบบง่าย
+      final cleanSnInput = sn.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
       
       final found = _allMeters.firstWhere((m) {
-        final cleanSnDb = m.serialNumber.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-        return cleanSnDb == cleanSnInput || m.serialNumber == sn; // เทียบทั้งแบบ clean และ exact
+        final cleanSnDb = m.serialNumber.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+        return cleanSnDb == cleanSnInput; // เทียบแค่ clean text
       });
       
       setState(() {
         _matchedMeter = found;
-        _statusMessage = "พบข้อมูล: อาคาร ${found.building} ชั้น ${found.floor}";
+        _statusMessage = "พบข้อมูล: อาคาร ${found.building} ชั้น ${found.floor} ✅";
       });
     } catch (e) {
-      // ไม่เจอ
-      setState(() => _statusMessage = "ไม่พบ S/N นี้ในระบบ");
+      // ไม่เจอ - แจ้งให้เพิ่มมิเตอร์ใหม่
+      setState(() {
+        _matchedMeter = null;
+        _statusMessage = "ไม่พบ S/N นี้ในระบบ กรุณาเพิ่มมิเตอร์ใหม่ก่อน";
+      });
     }
   }
 
+  
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     
-    if (_matchedMeter == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("ต้องมี S/N ที่ตรงกับในระบบเท่านั้นถึงจะบันทึกได้")),
-      );
-      return;
-    }
-
+    // อนุญาตให้บันทึกได้เสมอ ไม่ว่า S/N จะตรงกับระบบหรือไม่
     setState(() => _isLoading = true);
     
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString("token");
       
-      // ใช้ serialNumber จากตัวแปรที่เรา match เจอใน DB (เพื่อความแม่นยำ)
-      final canonicalSn = _matchedMeter!.serialNumber;
+      // ใช้ S/N ที่ผู้ใช้แก้ไข (จาก text field)
+      final editedSn = _serialController.text;
       
-      await ApiService.saveReading(canonicalSn, _readingController.text, null, token!);
+      // เรียก API ใหม่ที่สามารถบันทึกค่ามิเตอร์ได้เสมอ
+      await ApiService.saveReadingUpdate(editedSn, _readingController.text, null, token!);
       
       if (!mounted) return;
 
@@ -133,8 +131,9 @@ class _VerifyScreenState extends State<VerifyScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("มิเตอร์: $canonicalSn"),
-              Text("อาคาร: ${_matchedMeter!.building} ชั้น: ${_matchedMeter!.floor}"),
+              Text("มิเตอร์: $editedSn"),
+              if (_matchedMeter != null) 
+                Text("อาคาร: ${_matchedMeter!.building} ชั้น: ${_matchedMeter!.floor}"),
               Text("หน่วยที่อ่านได้: ${_readingController.text}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             ],
           ),
@@ -252,7 +251,7 @@ class _VerifyScreenState extends State<VerifyScreen> {
                 label: const Text("ยืนยันและบันทึก"),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: _matchedMeter != null ? Colors.green : Colors.grey,
+                  backgroundColor: Colors.green, // เปิดใช้งานได้เสมอ
                   foregroundColor: Colors.white,
                 ),
               ),

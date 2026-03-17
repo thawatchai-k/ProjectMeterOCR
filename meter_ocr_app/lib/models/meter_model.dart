@@ -16,10 +16,10 @@ class MeterModel {
   factory MeterModel.fromJson(Map<String, dynamic> json) {
     return MeterModel(
       id: json['id'],
-      serialNumber: json['serial_number'] ?? '',
-      building: json['building'] ?? '',
-      floor: json['floor'] ?? '',
-      createdAt: json['created_at'],
+      serialNumber: json['serial_number']?.toString() ?? '',
+      building: json['building']?.toString() ?? '',
+      floor: json['floor']?.toString() ?? '',
+      createdAt: json['created_at']?.toString(),
     );
   }
 
